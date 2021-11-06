@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 
 #include "fparser.h"
+#include "converts.h"
 
 void ftoken_test1()
 {
@@ -35,8 +35,6 @@ void ftoken_test1()
 		printf("f_errno = %d\n", f_errno);
 
 		free(line);
-
-		sleep(1);
 	}
 
 	printf("f_errno = %d\n", f_errno);
@@ -75,8 +73,6 @@ void ftoken_test2()
 		printf("f_errno = %d\n", f_errno);
 
 		free(line);
-
-		sleep(1);
 	}
 
 	printf("f_errno = %d\n", f_errno);
@@ -120,8 +116,6 @@ void ftoken_test3()
 		free(line);
 
 		if (++read_lines == 2) fclose(fp);
-
-		sleep(1);
 	}
 
 	printf("f_errno = %d\n", f_errno);
@@ -162,8 +156,6 @@ void ftoken_test4()
 		printf("f_errno = %d\n", f_errno);
 
 		free(line);
-
-		sleep(1);
 	}
 
 	printf("f_errno = %d\n", f_errno);
@@ -365,14 +357,28 @@ void fparse_test5()
 	printf("fparse'd %u convs.\n", n_strs);
 
 	printf("Printing the fparse convs.\n");
-	for (unsigned c_str = 0; c_str < n_strs; ++c_str)
-	{ printf("String %u: \"%s\"\n", c_str, strs[c_str]); }
+	for (unsigned c_str = 0; c_str < n_strs; ++c_str) {
+		printf("String %u: \"%s\"\n", c_str, strs[c_str]);
+		free(strs[c_str]);
+	}
 	free(mem);
 
 	free(delims);
 	fclose(fp);
 
 	printf("========== [fparse] Test 1 - Done ==========\n");
+}
+
+void fparse_test6()
+{
+	FILE* fp = fopen("example-vectors.txt", "r");
+	void* nldelim = nldelim();
+	void* mem = fparse(fp, convert_to_vector, nldelim);
+	free(nldelim);
+	fclose(fp);
+
+	struct vector* vectors[] = mem + sizeof(unsigned);
+	unsigned n_vectors = *(unsigned*)mem;
 }
 
 int main(void)
@@ -386,6 +392,9 @@ int main(void)
 
 	// Read from closed stream. The behaviour is undefined.
 	//ftoken_test3();
+
+	// Same as `ftoken_test1()` but using a large input file.
+	ftoken_test4();
 	printf("********** ftoken TESTS DONE **********\n");
 
 	printf("********** fparse TESTS START **********\n");
@@ -403,6 +412,9 @@ int main(void)
 
 	// Same as `fparse_test1()` but using a large file.
 	fparse_test5();
+
+	// Convert tokens to vectors.
+	fparse_test6();
 	printf("********** fparse TESTS DONE **********\n");
 
 	return EXIT_SUCCESS;
