@@ -22,4 +22,8 @@ int main(int argc, char* argv[])
 	unsigned n_vectors = *(unsigned*)mem;
 
 	// LSH.
+	lsh_init(args->inputf);
+	lsh_query(args->queryf, args->outputf);
+
+	lsh_free(args);
 }
