@@ -26,5 +26,5 @@ void lsh_perror(char* str)
 	err_code = LSH_OK;
 
 	if (str == NULL) str = "Error";
-	printf("%s: %s", str, lsh_strerr(err_code));
+	printf("%s: %s\n", str, lsh_strerr(err_code));
 }

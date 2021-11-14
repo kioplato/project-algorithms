@@ -56,7 +56,7 @@ extern void* convert_NULL(const void*, void* token)
 	return memcpy(malloc(token_bytes), token, token_bytes);
 }
 
-void* fparse(FILE* stream, void* (*convert)(const void**, void*), void* delims)
+void* fparse(FILE* stream, void* (*convert)(const void*, void*), void* delims)
 {
 	if (!stream || !delims) { f_errno = FPARSE_INV_PARAMS; return NULL; }
 

@@ -3,14 +3,15 @@
 #include <string.h>
 #include <errno.h>
 
-#include "fparser.h"
-#include "converts.h"
+#include "fparser/fparser.h"
+#include "fparser/converts.h"
+#include "errors/errors.h"
 
 void ftoken_test1()
 {
 	printf("========== [ftoken] Test 1 - Start - Read text file line by line ==========\n");
 
-	char* filename = "example-valid-file.txt";
+	char* filename = "example-inputs/example-valid-file.txt";
 
 	printf("Opening file %s for reading.\n", filename);
 	FILE* fp = fopen(filename, "r");
@@ -49,7 +50,7 @@ void ftoken_test2()
 {
 	printf("========== [ftoken] Test 2 - Start - Read text file until EOF by not specifying delims ==========\n");
 
-	char* filename = "example-valid-file.txt";
+	char* filename = "example-inputs/example-valid-file.txt";
 
 	printf("Opening file %s for reading.\n", filename);
 	FILE* fp = fopen(filename, "r");
@@ -87,7 +88,7 @@ void ftoken_test3()
 {
 	printf("========== [ftoken] Test 3 - Start - Read text file line by line, but close it midway ==========\n");
 
-	char* filename = "example-valid-file.txt";
+	char* filename = "example-inputs/example-valid-file.txt";
 
 	printf("Opening file %s for reading.\n", filename);
 	FILE* fp = fopen(filename, "r");
@@ -131,7 +132,7 @@ void ftoken_test4()
 {
 	printf("========== [ftoken] Test 4 - Start - Read text file line by line ==========\n");
 
-	char* filename = "sample-large.txt";
+	char* filename = "example-inputs/sample-large.txt";
 
 	printf("Opening file %s for reading.\n", filename);
 	FILE* fp = fopen(filename, "r");
@@ -180,7 +181,7 @@ void fparse_test1()
 {
 	printf("========== [fparse] Test 1 - Start - Convert tokens to strings ==========\n");
 
-	char* filename = "example-valid-file.txt";
+	char* filename = "example-inputs/example-valid-file.txt";
 
 	printf("Opening file %s for reading.\n", filename);
 	FILE* fp = fopen(filename, "r");
@@ -193,6 +194,7 @@ void fparse_test1()
 	printf("fparse'ing.\n");
 	void* mem = fparse(fp, &convert_test1, delims);
 	printf("f_errno = %d\n", f_errno);
+	if (mem == NULL) { printf("Error: NULL mem\n"); exit(1); }
 
 	unsigned n_strs = *(unsigned*)mem;
 	char** strs = mem + sizeof(unsigned);
@@ -213,7 +215,7 @@ void fparse_test2()
 {
 	printf("========== [fparse] Test 2 - Start - NULL convert ==========\n");
 
-	char* filename = "example-valid-file.txt";
+	char* filename = "example-inputs/example-valid-file.txt";
 
 	printf("Opening file %s for reading.\n", filename);
 	FILE* fp = fopen(filename, "r");
@@ -280,7 +282,7 @@ void* convert_test4(const void* mem, void* token)
 	void* const * convs = mem + sizeof(unsigned);
 	printf("Printing %u convs.\n", n_convs);
 	for (unsigned c_conv = 0; c_conv < n_convs; ++c_conv) {
-		char* conv = convs[c_conv] + sizeof(unsigned);
+		const char* conv = convs[c_conv] + sizeof(unsigned);
 		unsigned conv_len = *((unsigned*)convs[c_conv]);
 		printf("Printing %u conv with length %u: \"", c_conv, conv_len);
 		for (unsigned c_byte = 0; c_byte < conv_len; ++c_byte)
@@ -296,7 +298,7 @@ void fparse_test4()
 {
 	printf("========== [fparse] Test 4 - Start - Copy and return token, and print mem in convert ==========\n");
 
-	char* filename = "example-valid-file.txt";
+	char* filename = "example-inputs/example-valid-file.txt";
 
 	printf("Opening file %s for reading.\n", filename);
 	FILE* fp = fopen(filename, "r");
@@ -338,7 +340,7 @@ void fparse_test5()
 {
 	printf("========== [fparse] Test 5 - Start - Convert tokens to strings (Large input file) ==========\n");
 
-	char* filename = "sample-large.txt";
+	char* filename = "example-inputs/sample-large.txt";
 
 	printf("Opening file %s for reading.\n", filename);
 	FILE* fp = fopen(filename, "r");
@@ -366,19 +368,79 @@ void fparse_test5()
 	free(delims);
 	fclose(fp);
 
-	printf("========== [fparse] Test 1 - Done ==========\n");
+	printf("========== [fparse] Test 5 - Done ==========\n");
 }
 
 void fparse_test6()
 {
-	FILE* fp = fopen("example-vectors.txt", "r");
-	void* nldelim = nldelim();
-	void* mem = fparse(fp, convert_to_vector, nldelim);
-	free(nldelim);
+	printf("========== [fparse] Test 6 - Start - Convert tokens to vectors ==========\n");
+
+	char* filename = "example-inputs/example-vectors.txt";
+
+	printf("Opening file %s for reading.\n", filename);
+	FILE* fp = fopen(filename, "r");
+
+	printf("Setting up delims.\n");
+	void* delim = nldelim();
+
+	printf("fparse'ing.\n");
+	void* mem = fparse(fp, &convert_to_vector, delim);
+	printf("f_errno = %d\n", f_errno);
+
+	free(delim);
 	fclose(fp);
 
-	struct vector* vectors[] = mem + sizeof(unsigned);
 	unsigned n_vectors = *(unsigned*)mem;
+	struct vector** vectors = mem + sizeof(unsigned);
+	printf("fparse'd %u tokens.\n", n_vectors);
+
+	printf("Printing the fparse'd tokens.\n");
+	for (unsigned c_vector = 0; c_vector < n_vectors; ++c_vector) {
+		printf(">>>>> Printing %u vector.\n", c_vector);
+		vector_print(vectors[c_vector]);
+		vector_free(vectors[c_vector]);
+	}
+	free(mem);
+
+	printf("========== [fparse] Test 6 - Done ==========\n");
+}
+
+void fparse_test7()
+{
+	printf("========== [fparse] Test 7 - Start - Convert tokens to vectors ==========\n");
+
+	char* filename = "example-inputs/sample-big-vectors.txt";
+
+	printf("Opening file %s for reading.\n", filename);
+	FILE* fp = fopen(filename, "r");
+
+	printf("Setting up delims.\n");
+	void* delim = nldelim();
+
+	printf("fparse'ing.\n");
+	void* mem = fparse(fp, &convert_to_vector, delim);
+	printf("f_errno = %d\n", f_errno);
+
+	free(delim);
+	fclose(fp);
+
+	unsigned n_vectors = *(unsigned*)mem;
+	struct vector** vectors = mem + sizeof(unsigned);
+	printf("fparse'd %u tokens.\n", n_vectors);
+
+	printf("Printing the fparse'd tokens.\n");
+	for (unsigned c_vector = 0; c_vector < n_vectors; ++c_vector) {
+		printf("%u ", vectors[c_vector]->id);
+		unsigned n_dims = vectors[c_vector]->n_dims;
+		for (unsigned c_dim = 0; c_dim < n_dims; ++c_dim)
+			printf("%u ", vectors[c_vector]->dims[c_dim]);
+		printf("\r\n");  // So that `diff` comes out clean.
+
+		vector_free(vectors[c_vector]);
+	}
+	free(mem);
+
+	printf("========== [fparse] Test 7 - Done ==========\n");
 }
 
 int main(void)
@@ -415,6 +477,9 @@ int main(void)
 
 	// Convert tokens to vectors.
 	fparse_test6();
+
+	// Convert tokens to vectors (Large file).
+	fparse_test7();
 	printf("********** fparse TESTS DONE **********\n");
 
 	return EXIT_SUCCESS;

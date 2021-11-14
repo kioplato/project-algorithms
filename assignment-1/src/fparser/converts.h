@@ -1,10 +1,9 @@
 #ifndef CONVERTS_H
 #define CONVERTS_H
 
-//#include "../vector/vector.h"
-#include "vector.h"
+#include "../vector/vector.h"
 
-void* convert_to_string(const void**, void* token)
+void* convert_to_string(const void*, void* token)
 {
 	unsigned token_len = *(unsigned*)token;
 	char* conv = malloc(token_len + 1);
@@ -22,21 +21,22 @@ static int is_positive_integer(char* str)
 	return 1;
 }
 
-void* convert_to_vector(const void** mem, void* token)
+void* convert_to_vector(const void* mem, void* token)
 {
 	unsigned token_len = *(unsigned*)token;
 	char* strvec = token + sizeof(unsigned);
 	strvec[token_len - 1] = '\0';  // Replace the new line.
+	if (strvec[token_len - 2] == '\r') strvec[token_len - 2] = '\0';
 
 	/* `strtok()` the string. */
-	strtok(strvec, " ");
 	char* strvectok = NULL;
 
 	// Read the vector's ID.
-	if ((strvectok = strtok(NULL, " ")) != NULL) {
+	if ((strvectok = strtok(strvec, " ")) != NULL) {
 		if (!is_positive_integer(strvectok)) {
 			printf("Error: ignoring invalid vector %s\n", strvec);
 			printf("Error: invalid vector's token %s\n", strvectok);
+			printf("Info: token is not a positive integer\n");
 			return NULL;  // Invalid vector.
 		}
 	} else return NULL;  // Empty line.
@@ -50,6 +50,7 @@ void* convert_to_vector(const void** mem, void* token)
 		if (!is_positive_integer(strvectok)) {
 			printf("Error: ignoring invalid vector %s\n", strvec);
 			printf("Error: invalid vector's token %s\n", strvectok);
+			printf("Info: token is not a positive integer\n");
 			free(dims); return NULL;  // Invalid vector.
 		}
 
@@ -62,7 +63,8 @@ void* convert_to_vector(const void** mem, void* token)
 
 	// Compare number of dimensions with the first vector (if exists).
 	unsigned n_vectors = *(unsigned*)mem;
-	if (n_vectors != 0 && c_dims != (*(mem + sizeof(unsigned)))->n_dims) {
+	struct vector* const * prev = mem + sizeof(unsigned);
+	if (n_vectors != 0 && c_dims != (*prev)->n_dims) {
 		printf("Error: ignoring invalid vector %s\n", strvec);
 		printf("Error: different number of dimensions\n");
 		free(dims); return NULL;
